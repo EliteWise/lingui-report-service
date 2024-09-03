@@ -1,14 +1,29 @@
+import datetime
+
 import requests
+import logging
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Dict, List
+
 app = FastAPI()
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename="report.log", level=logging.INFO)
 
 
 class Messages(BaseModel):
     id: str
     user_id: str
     username: str
-    message: dict[str, str]
+    messages: List[Dict[str, str]]
+
+
+class Report(BaseModel):
+    id: str
+    user_id: str
+    username: str
+    corrected_words: List[Dict[str, str]]
+    process_date: datetime.date
 
 
 def check_text(lang, text):
@@ -18,6 +33,7 @@ def check_text(lang, text):
         "language": lang
     }
     response = requests.post(url, data=params)
+    logger.info("Language Tool Status Code: " + response.status_code)
     result = response.json()
 
     corrections = []
@@ -43,35 +59,39 @@ def apply_corrections(text, corrections):
     return text
 
 
-@app.get("/")
+corrected_words = []
+
+
+@app.post("/")
 async def process_texts(texts: Messages):
-    for lang, msg in texts.message.items():
+    corrected_words.clear()
+    for message in texts.messages:
+        lang = message.get("lang")
+        msg = message.get("text")
         try:
             # First check
             corrections = check_text(lang, msg)
             corrected_text = apply_corrections(msg, corrections)
 
-            print(f"Language: {lang}")
-            print(f"Original text: {msg}")
+            logger.info(f"Language: {lang}")
+            logger.info(f"Original text: {msg}")
 
-            print(f"Text after corrections: {corrected_text}")
+            logger.info(f"Text after corrections: {corrected_text}")
             print_corrections("Final corrections", corrections)
-            return corrected_words
 
         except Exception as e:
-            print(f"Error processing language {lang}: {e}")
+            logger.info(f"Error processing language {lang}: {e}")
 
-
-corrected_words = []
+    return Report(id=texts.id, user_id=texts.user_id, username=texts.username, corrected_words=corrected_words, process_date=datetime.date.today())
 
 
 def print_corrections(title, corrections):
-    print(f"{title}:")
+    logger.info(f"{title}:")
     if corrections:
         for correction in corrections:
-            print(f"  Error: {correction['error']}")
+            logger.info(f"  Error: {correction['error']}")
             if correction['corrections']:
-                print(f"    Correction: " + correction['corrections'][0])
-                corrected_words.append(correction['corrections'][0])
+                logger.info(f"    Correction: " + correction['corrections'][0])
+                corrected_words.append({correction['error']: correction['corrections'][0]})
     else:
-        print("  No corrections found.")
+        logger.info("  No corrections found.")
