@@ -33,7 +33,7 @@ def check_text(lang, text):
         "language": lang
     }
     response = requests.post(url, data=params)
-    logger.info("Language Tool Status Code: " + response.status_code)
+    logger.info("Language Tool Status Code: " + str(response.status_code))
     result = response.json()
 
     corrections = []

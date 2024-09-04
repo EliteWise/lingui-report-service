@@ -1,0 +1,6 @@
+services:
+  report-service:
+    image: lingui/report-service:v1.0.0
+    container_name: report-service-dev
+    ports:
+      - "8001:80"
