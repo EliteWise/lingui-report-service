@@ -27,6 +27,18 @@ class Report(BaseModel):
 
 
 def check_text(lang, text):
+
+    """
+    Check the given text using Language Tool API.
+
+    Args:
+        lang (str): Language of the text.
+        text (str): Text to be checked.
+
+    Returns:
+        List[Dict[str, str]]: A list of corrections. Each correction is a dictionary with two keys: "error" and "corrections". "error" is the text that has an error, and "corrections" is a list of suggestions for the error.
+    """
+
     url = "https://api.languagetool.org/v2/check"
     params = {
         "text": text,
@@ -53,6 +65,16 @@ def check_text(lang, text):
 
 
 def apply_corrections(text, corrections):
+    """
+    Replace all the words with corrections in the given text.
+
+    Args:
+        text (str): The text to be corrected.
+        corrections (List[Dict[str, str]]): The list of corrections to be applied to the text.
+
+    Returns:
+        str: The corrected text.
+    """
     for correction in corrections:
         if correction['corrections']:
             text = text.replace(correction['error'], correction['corrections'][0])
@@ -64,6 +86,9 @@ corrected_words = []
 
 @app.post("/")
 async def process_texts(texts: Messages):
+    """
+    Process a list of texts and return a report with the number of corrections done in each text
+    """
     corrected_words.clear()
     for message in texts.messages:
         lang = message.get("lang")
